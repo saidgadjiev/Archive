@@ -29,89 +29,73 @@ void destroy(FwdIter *first, FwdIter *last) {
 }
 
 template <class T>
-void swap(T &a, T &b) {
-    T temp(a);
-    a = b;
-    b = temp;
-}
-
-template <class T>
 class CHeapImpl {
 public:
-    CHeapImpl(size_t size = 0);
+    CHeapImpl(int size = 0);
     ~CHeapImpl();
     void swap(CHeapImpl &tmp) throw();
     
     T **buffer;
-    size_t realSize;
-    size_t bufferSize;
+    int realSize;
+    int bufferSize;
 private:
     CHeapImpl(const CHeapImpl &tmp);
     CHeapImpl &operator = (const CHeapImpl &tmp);
 };
 
 template <class T>
-CHeapImpl<T>::CHeapImpl(size_t size):
+CHeapImpl<T>::CHeapImpl(int size):
     buffer(static_cast<T**>(size == 0
                             ? nullptr
                             : operator new(sizeof(T) * size))),
-    realSize(size),
-    bufferSize(0)
+    realSize(0),
+    bufferSize(size)
 {}
 
 template <class T>
 CHeapImpl<T>::~CHeapImpl() {
     destroy(buffer, buffer + realSize);
+    operator delete(buffer);
 }
 
 template <class T>
 void CHeapImpl<T>::swap(CHeapImpl &tmp) throw() {
-    swap(buffer, tmp.buffer);
-    swap(realSize, tmp.realSize);
-    swap(bufferSize, tmp.bufferSize);
+    ::swap(buffer, tmp.buffer);
+    ::swap(realSize, tmp.realSize);
+    ::swap(bufferSize, tmp.bufferSize);
 }
 
 template <class T>
 class CHeap {
 public:
-    CHeap();
-    ~CHeap();
+    CHeap(int size = 0);
     void add(T *item);
+    void extract();
     T *extractMin();
-    void siftUp(int index);
-    void siftDown(int index);
     bool isEmpty() const;
     bool isFull() const;
-    void printHeap();
-    int getSize();
+    void printHeap() const;
+    int getSize() const;
 private:
-    T **buffer;
-    int realSize;
-    int bufferSize;
+    CHeapImpl<T> impl;
     void grow();
+    void siftUp(int index);
+    void siftDown(int index);
 };
 
 template <class T>
-CHeap<T>::CHeap():
-    buffer(nullptr),
-    realSize(0),
-    bufferSize(0)
+CHeap<T>::CHeap(int size):
+    impl(size)
 {}
 
 template <class T>
-CHeap<T>::~CHeap<T>() {
-    delete [] buffer;
-}
-
-template <class T>
 void CHeap<T>::grow() {
-    int newBufferSize = max( bufferSize * 2, 1 );
-    T **newBuffer = new T*[newBufferSize];
-    for (int i = 0; i < realSize; i++)
-        newBuffer[i] = buffer[i];
-    delete[] buffer;
-    buffer = newBuffer;
-    bufferSize = newBufferSize;
+    CHeap temp(impl.bufferSize * 2 + 1);
+
+    while (temp.getSize() < impl.realSize) {
+        temp.add(impl.buffer[temp.getSize()]);
+    }
+    impl.swap(temp.impl);
 }
 
 template <class T>
@@ -119,22 +103,29 @@ void CHeap<T>::add(T *item) {
     if (isFull()) {
         grow();
     }
-    buffer[realSize++] = item;
-    siftUp(realSize - 1);
+    impl.buffer[impl.realSize++] = item;
+    siftUp(impl.realSize - 1);
 }
 
 template <class T>
 T *CHeap<T>::extractMin() {
     if (isEmpty()) {
-        cout << "Heap is empty!" << endl;
+        throw "Heap empty";
+    } else {
+        return impl.buffer[0];
     }
-    T *result = buffer[0];
-    buffer[0] = buffer[realSize - 1];
-    realSize--;
-    if (!isEmpty()) {
+}
+
+template <class T>
+void CHeap<T>::extract() {
+    if (isEmpty()) {
+        throw "extract from empty heap";
+    } else {
+        impl.buffer[0] = impl.buffer[impl.realSize - 1];
+        impl.realSize--;
+        destroy(impl.buffer + impl.realSize);
         siftDown(0);
     }
-    return result;
 }
 
 template <class T>
@@ -142,9 +133,10 @@ void CHeap<T>::siftUp(int index) {
     while( index > 0 ) {
         int parent = (index - 1) / 2;
         
-        if( *buffer[parent] <= *buffer[index])
+        if (*(impl.buffer[parent]) <= *(impl.buffer[index])) {
             return;
-        swap(buffer[index], buffer[parent]);
+        }
+        swap(*(impl.buffer[index]), *(impl.buffer[parent]));
         index = parent;
     }
 }
@@ -155,36 +147,39 @@ void CHeap<T>::siftDown(int index)
     int left = 2 * index + 1;
     int right = 2 * index + 2;
     int smallest = index;
-    if (left < realSize && *buffer[left] < *buffer[index])
+    
+    if (left < impl.realSize && *(impl.buffer[left]) < *(impl.buffer[index])) {
         smallest = left;
-    if (right < realSize && *buffer[right] < *buffer[smallest])
+    }
+    if (right < impl.realSize && *(impl.buffer[right]) < *(impl.buffer[smallest])) {
         smallest= right;
+    }
     if(smallest != index) {
-        swap(buffer[index], buffer[smallest] );
+        swap(impl.buffer[index], impl.buffer[smallest] );
         siftDown(smallest);
     }
 }
 
 template <class T>
-void CHeap<T>::printHeap() {
-    for (int i = 0; i < realSize; i++) {
-        cout << *buffer[i] << endl;
+void CHeap<T>::printHeap() const {
+    for (int i = 0; i < impl.realSize; i++) {
+        cout << *(impl.buffer[i]) << endl;
     }
 }
 
 template <class T>
-int CHeap<T>::getSize() {
-    return realSize;
+int CHeap<T>::getSize() const {
+    return impl.realSize;
 }
 
 template <class T>
 bool CHeap<T>::isEmpty() const {
-    return realSize == 0;
+    return impl.realSize == 0;
 }
 
 template <class T>
 bool CHeap<T>::isFull() const {
-    return realSize == bufferSize;
+    return impl.realSize == impl.bufferSize;
 }
 
 class CNode {
@@ -195,22 +190,23 @@ private:
 public:
     CNode(unsigned long int weight = 0, unsigned char ch = '\0');
     ~CNode();
-    void destroyTree(CNode *node);
+    void destroyTree(CNode *node) const;
     void setWeight(unsigned long int weight);
-    unsigned long int getWeight();
+    unsigned long int getWeight() const;
     void setChar(unsigned char ch);
-    unsigned char getChar();
+    unsigned char getChar() const;
     void setLeft(CNode *n);
-    CNode *getLeft();
+    CNode *getLeft() const;
     void setRight(CNode *n);
-    CNode *getRight();
-    void printNode();
+    CNode *getRight() const;
+    void printNode() const;
     bool findChar(CNode *node, string bitCode, unsigned char &ch) const;
-    void buildHuffmanCode(CNode *node, unsigned char ch, string bitCode, string &result);
-    void printTree(CNode *node);
+    void buildHuffmanCode(CNode *node, unsigned char ch, string bitCode, string &result) const;
+    void printTree(CNode *node) const;
     bool operator < (const CNode &node) const;
     bool operator <= (const CNode &node) const;
     bool operator > (const CNode &node) const;
+    bool operator >= (const CNode &node) const;
     friend ostream &operator << (ostream &os, const CNode &node);
 };
 
@@ -227,7 +223,7 @@ CNode::~CNode()
     delete right;
 }
 
-void CNode::destroyTree(CNode *node)
+void CNode::destroyTree(CNode *node) const
 {
     if (node) {
         destroyTree(node->left);
@@ -236,12 +232,12 @@ void CNode::destroyTree(CNode *node)
     }
 }
 
-unsigned long int CNode::getWeight()
+unsigned long int CNode::getWeight() const
 {
     return weight;
 }
 
-unsigned char CNode::getChar()
+unsigned char CNode::getChar() const
 {
     return ch;
 }
@@ -261,22 +257,22 @@ void CNode::setRight(CNode *node)
     right = node;
 }
 
-CNode *CNode::getLeft()
+CNode *CNode::getLeft() const
 {
     return left;
 }
 
-CNode *CNode::getRight()
+CNode *CNode::getRight() const
 {
     return right;
 }
 
-void CNode::printNode()
+void CNode::printNode() const
 {
     cout << weight << " " << ch;
 }
 
-void CNode::printTree(CNode *node)
+void CNode::printTree(CNode *node) const
 {
     if (node) {
         cout << node->weight << endl;
@@ -289,6 +285,7 @@ void countFrequence(ifstream &file, unsigned long int *weight)
 {
     unsigned char ch = '\0';
     char tmp = '\0';
+    
     while (file.get(tmp)) {
         ch = tmp;
         weight[ch]++;
@@ -299,8 +296,7 @@ void countFrequence(ifstream &file, unsigned long int *weight)
 
 ostream &operator << (ostream &os, const CNode &node)
 {
-    os << node.weight << " " << node.ch;
-    return os;
+    return os << node.weight << " " << node.ch;;
 }
 
 bool CNode::operator < (const CNode &node) const
@@ -318,13 +314,17 @@ bool CNode::operator > (const CNode &node) const
     return weight > node.weight;
 }
 
-void CNode::buildHuffmanCode(CNode *node, unsigned char ch, string bitCode, string &result)
+bool CNode::operator >= (const CNode &node) const
+{
+    return weight >= node.weight;
+}
+
+void CNode::buildHuffmanCode(CNode *node, unsigned char ch, string bitCode, string &result) const
 {
     if (node) {
         if (!node->left && !node->right && node->ch == ch) {
             result = bitCode;
-        } else
-        {
+        } else {
             buildHuffmanCode(node->left, ch, bitCode + "0", result);
             buildHuffmanCode(node->right, ch, bitCode + "1", result);
         }
@@ -334,12 +334,12 @@ void CNode::buildHuffmanCode(CNode *node, unsigned char ch, string bitCode, stri
 bool CNode::findChar(CNode *node, string bitCode, unsigned char &ch) const
 {
     for(size_t i = 0; i < bitCode.size(); i++) {
-        if(bitCode[i] == '0')
+        if(bitCode[i] == '0') {
             node = node->left;
-        else
+        } else {
             node = node->right;
+        }
     }
-    
     bool result = false;
     
     if(!node->left && !node->right) {
@@ -356,10 +356,11 @@ void writeBitCodeInFile(unsigned char bit, ostream &file)
     static unsigned char ch = '\0';
     
     if (bit < 2) {
-        if (bit == 1)
+        if (bit == 1) {
             ch |= (1 << (7 - bitPos));
-        else
+        } else {
             ch &= static_cast<unsigned char>(255 - (1 << (7 - bitPos)));
+        }
         ++bitPos;
         bitPos %= 8;
         if (bitPos == 0) {
@@ -373,7 +374,7 @@ void writeBitCodeInFile(unsigned char bit, ostream &file)
 
 CNode *buildTree(unsigned long int *weight)
 {
-    CHeap<CNode> *heap = new CHeap<CNode>();
+    shared_ptr<CHeap<CNode>> heap(new CHeap<CNode>());
     CNode *node;
     for (unsigned short i = 0; i < 0x100; i++) {
         if (weight[i] > 0) {
@@ -386,8 +387,10 @@ CNode *buildTree(unsigned long int *weight)
     
     do {
         node1 = heap->extractMin();
+        heap->extract();
         if (!heap->isEmpty()) {
             node2 = heap->extractMin();
+            heap->extract();
             node = new CNode();
             node->setWeight(node1->getWeight() + node2->getWeight());
             node->setLeft(node1);
@@ -395,8 +398,6 @@ CNode *buildTree(unsigned long int *weight)
             heap->add(node);
         }
     } while (!heap->isEmpty());
-
-    delete heap;
     
     return node1;
 }
@@ -428,30 +429,26 @@ void encoder(const string ifile, const string ofile)
         cout << "Error can't open file: " << ifile << endl;
         exit(-1);
     }
-    
     ofstream outfile(ofile.c_str(), ios::out|ios::binary|ios::trunc);
     unsigned long int weight[0x100] = {0};
     
     countFrequence(infile, weight);
-    
     for (unsigned short i = 0; i < 0x100; i++) {
         outfile.put(static_cast<unsigned char>(weight[i] >> 24));
         outfile.put(static_cast<unsigned char>((weight[i] >> 16) % 256));
         outfile.put(static_cast<unsigned char>((weight[i] >> 8) % 256));
         outfile.put(static_cast<unsigned char>(weight[i] % 256));
     }
-    
-    string bitTable[0x100];
+    string bitStrings[0x100];
     shared_ptr<CNode> node(buildTree(weight));
     
     for (unsigned short i = 0; i < 0x100; i++) {
         if (weight[i] > 0) {
-            bitTable[i] = "";
+            bitStrings[i] = "";
             i = static_cast<unsigned char>(i);
-            node->buildHuffmanCode(node.get(), i, "", bitTable[i]);
+            node->buildHuffmanCode(node.get(), i, "", bitStrings[i]);
         }
     }
-    
     unsigned char ch = '\0';
     char tmp = '\0';
     unsigned char bit = '\0';
@@ -459,11 +456,12 @@ void encoder(const string ifile, const string ofile)
     while (infile.get(tmp)) {
         ch = tmp;
         if (weight[ch] > 0) {
-            for (size_t i = 0; i < bitTable[ch].size(); i++) {
-                if (bitTable[ch].at(i) == '0')
+            for (size_t i = 0; i < bitStrings[ch].size(); i++) {
+                if (bitStrings[ch].at(i) == '0') {
                     bit = 0;
-                else
+                } else {
                     bit = 1;
+                }
                 writeBitCodeInFile(bit, outfile);
             }
         }
@@ -482,9 +480,7 @@ void decoder(string ifile, string ofile)
         cout << "Error can't open file: " << ifile << endl;
         exit(-1);
     }
-    
     ofstream outfile(ofile.c_str(), ios::out|ios::binary|ios::trunc);
-    
     unsigned long int weight[0x100] = {0};
     unsigned char ch = '\0';
     char tmp = '\0';
@@ -496,7 +492,7 @@ void decoder(string ifile, string ofile)
             weight[i] += ch * (1 << (8 * j));
         }
     }
-    CNode *node = buildTree(weight);
+    shared_ptr<CNode> node(buildTree(weight));
     unsigned long int totalWeight = node->getWeight();
     string bitStr = "";
     unsigned char bitChar = '\0';
@@ -510,13 +506,12 @@ void decoder(string ifile, string ofile)
             } else {
                 bitStr += '1';
             }
-        } while (!node->findChar(node, bitStr, bitChar));
+        } while (!node->findChar(node.get(), bitStr, bitChar));
         outfile.put(static_cast<char>(bitChar));
         totalWeight--;
     }
     infile.close();
     outfile.close();
-    delete node;
 }
 
 int main(int argc, const char * argv[]) {
@@ -549,7 +544,7 @@ int main(int argc, const char * argv[]) {
             }
             create_directory(outDir);
             for(auto path: filePath) {
-                encoder(path.string(), outDir.string() + "/" + path.filename().string());
+                encoder(path.string(), outDir.string() + "/" + path.filename().string() + ".huff");
             }
         } else if (!strcmp("-d", argv[2])) {
             string prefix(".huff");
@@ -565,7 +560,14 @@ int main(int argc, const char * argv[]) {
             }
             create_directory(outDir);
             for(auto path: filePath) {
-                decoder(path.string(), outDir.string() + "/" + path.filename().string());
+                string ofile = path.filename().string();
+                size_t pos = ofile.find(prefix);
+                
+                if (pos != string::npos)
+                {
+                    ofile.erase(pos, prefix.size());
+                }
+                decoder(path.string(), outDir.string() + "/" + ofile);
             }
         }
     } else {
@@ -589,6 +591,6 @@ int main(int argc, const char * argv[]) {
             decoder(in.filename().string(), outDir.string());
         }
     }
-    
+     
     return 0;
 }
