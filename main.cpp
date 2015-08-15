@@ -184,10 +184,6 @@ bool CHeap<T>::isFull() const {
 }
 
 class CNode {
-private:
-    unsigned long int weight;
-    unsigned char ch;
-    CNode *left, *right;
 public:
     CNode(unsigned long int weight = 0, unsigned char ch = '\0');
     ~CNode();
@@ -209,6 +205,10 @@ public:
     bool operator > (const CNode &node) const;
     bool operator >= (const CNode &node) const;
     friend ostream &operator << (ostream &os, const CNode &node);
+private:
+    unsigned long int weight;
+    unsigned char ch;
+    CNode *left, *right;
 };
 
 CNode::CNode(unsigned long int weight, unsigned char ch):
@@ -220,8 +220,8 @@ CNode::CNode(unsigned long int weight, unsigned char ch):
 
 CNode::~CNode()
 {
-    delete left;
-    delete right;
+    destroyTree(left);
+    destroyTree(right);
 }
 
 void CNode::destroyTree(CNode *node) const
