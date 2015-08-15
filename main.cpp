@@ -8,6 +8,7 @@
 
 #include <iostream>
 #include <fstream>
+#include <limits>
 #include <boost/filesystem.hpp>
 #include <boost/regex.hpp>
 #include <boost/filesystem/operations.hpp>
@@ -70,7 +71,7 @@ class CHeap {
 public:
     CHeap(int size = 0);
     void add(T *item);
-    void extract();
+    void deleteExtractElement();
     T *extractMin();
     bool isEmpty() const;
     bool isFull() const;
@@ -117,7 +118,7 @@ T *CHeap<T>::extractMin() {
 }
 
 template <class T>
-void CHeap<T>::extract() {
+void CHeap<T>::deleteExtractElement() {
     if (isEmpty()) {
         throw "extract from empty heap";
     } else {
@@ -357,12 +358,12 @@ void writeBitCodeInFile(unsigned char bit, ostream &file)
     
     if (bit < 2) {
         if (bit == 1) {
-            ch |= (1 << (7 - bitPos));
+            ch |= (1 << (CHAR_BIT - 1 - bitPos));
         } else {
-            ch &= static_cast<unsigned char>(255 - (1 << (7 - bitPos)));
+            ch &= static_cast<unsigned char>(UCHAR_MAX - (1 << (CHAR_BIT - 1 - bitPos)));
         }
         ++bitPos;
-        bitPos %= 8;
+        bitPos %= CHAR_BIT;
         if (bitPos == 0) {
             file.put(ch);
             ch = '\0';
@@ -376,7 +377,7 @@ CNode *buildTree(unsigned long int *weight)
 {
     shared_ptr<CHeap<CNode>> heap(new CHeap<CNode>());
     CNode *node;
-    for (unsigned short i = 0; i < 0x100; i++) {
+    for (unsigned short i = 0; i < UCHAR_MAX + 1; i++) {
         if (weight[i] > 0) {
             node = new CNode(weight[i], static_cast<unsigned char>(i));
             heap->add(node);
@@ -387,10 +388,10 @@ CNode *buildTree(unsigned long int *weight)
     
     do {
         node1 = heap->extractMin();
-        heap->extract();
+        heap->deleteExtractElement();
         if (!heap->isEmpty()) {
             node2 = heap->extractMin();
-            heap->extract();
+            heap->deleteExtractElement();
             node = new CNode();
             node->setWeight(node1->getWeight() + node2->getWeight());
             node->setLeft(node1);
@@ -408,9 +409,9 @@ unsigned char readCodeFromFile(ifstream &infile)
     static unsigned char ch = infile.get();
     unsigned char bitCode;
     
-    bitCode = (ch >> (7 - bitPos)) % 2;
+    bitCode = (ch >> (CHAR_BIT - 1 - bitPos)) % 2;
     ++bitPos;
-    bitPos %= 8;
+    bitPos %= CHAR_BIT;
     if (bitPos == 0) {
         if (!infile.eof())
             ch = infile.get();
@@ -430,14 +431,14 @@ void encoder(const string ifile, const string ofile)
         exit(-1);
     }
     ofstream outfile(ofile.c_str(), ios::out|ios::binary|ios::trunc);
-    unsigned long int weight[0x100] = {0};
+    unsigned long int weight[UCHAR_MAX + 1] = {0};
     
     countFrequence(infile, weight);
-    for (unsigned short i = 0; i < 0x100; i++) {
+    for (unsigned short i = 0; i < UCHAR_MAX + 1; i++) {
         outfile.put(static_cast<unsigned char>(weight[i] >> 24));
-        outfile.put(static_cast<unsigned char>((weight[i] >> 16) % 256));
-        outfile.put(static_cast<unsigned char>((weight[i] >> 8) % 256));
-        outfile.put(static_cast<unsigned char>(weight[i] % 256));
+        outfile.put(static_cast<unsigned char>((weight[i] >> 16) % (UCHAR_MAX + 1)));
+        outfile.put(static_cast<unsigned char>((weight[i] >> 8) % (UCHAR_MAX + 1)));
+        outfile.put(static_cast<unsigned char>(weight[i] % (UCHAR_MAX + 1)));
     }
     string bitStrings[0x100];
     shared_ptr<CNode> node(buildTree(weight));
@@ -481,7 +482,7 @@ void decoder(string ifile, string ofile)
         exit(-1);
     }
     ofstream outfile(ofile.c_str(), ios::out|ios::binary|ios::trunc);
-    unsigned long int weight[0x100] = {0};
+    unsigned long int weight[UCHAR_MAX + 1] = {0};
     unsigned char ch = '\0';
     char tmp = '\0';
     
@@ -489,7 +490,7 @@ void decoder(string ifile, string ofile)
         for (int j = 3; j >= 0; j--) {
             infile.get(tmp);
             ch = tmp;
-            weight[i] += ch * (1 << (8 * j));
+            weight[i] += ch * (1 << (CHAR_BIT * j));
         }
     }
     shared_ptr<CNode> node(buildTree(weight));
