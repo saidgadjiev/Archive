@@ -32,20 +32,20 @@ void destroy(FwdIter *first, FwdIter *last) {
 template <class T>
 class CHeapImpl {
 public:
-    CHeapImpl(int size = 0);
+    CHeapImpl(size_t size = 0);
     ~CHeapImpl();
     void swap(CHeapImpl &tmp) throw();
     
     T **buffer;
-    int realSize;
-    int bufferSize;
+    size_t realSize;
+    size_t bufferSize;
 private:
     CHeapImpl(const CHeapImpl &tmp);
     CHeapImpl &operator = (const CHeapImpl &tmp);
 };
 
 template <class T>
-CHeapImpl<T>::CHeapImpl(int size):
+CHeapImpl<T>::CHeapImpl(size_t size):
     buffer(static_cast<T**>(size == 0
                             ? nullptr
                             : operator new(sizeof(T) * size))),
@@ -69,23 +69,23 @@ void CHeapImpl<T>::swap(CHeapImpl &tmp) throw() {
 template <class T>
 class CHeap {
 public:
-    CHeap(int size = 0);
+    CHeap(size_t size = 0);
     void add(T *item);
     void deleteExtractElement();
     T *extractMin();
     bool isEmpty() const;
     bool isFull() const;
     void printHeap() const;
-    int getSize() const;
+    size_t getSize() const;
 private:
     CHeapImpl<T> impl;
     void grow();
-    void siftUp(int index);
-    void siftDown(int index);
+    void siftUp(size_t index);
+    void siftDown(size_t index);
 };
 
 template <class T>
-CHeap<T>::CHeap(int size):
+CHeap<T>::CHeap(size_t size):
     impl(size)
 {}
 
@@ -130,9 +130,9 @@ void CHeap<T>::deleteExtractElement() {
 }
 
 template <class T>
-void CHeap<T>::siftUp(int index) {
+void CHeap<T>::siftUp(size_t index) {
     while( index > 0 ) {
-        int parent = (index - 1) / 2;
+        size_t parent = (index - 1) / 2;
         
         if (*(impl.buffer[parent]) <= *(impl.buffer[index])) {
             return;
@@ -143,11 +143,11 @@ void CHeap<T>::siftUp(int index) {
 }
 
 template <class T>
-void CHeap<T>::siftDown(int index)
+void CHeap<T>::siftDown(size_t index)
 {
-    int left = 2 * index + 1;
-    int right = 2 * index + 2;
-    int smallest = index;
+    size_t left = 2 * index + 1;
+    size_t right = 2 * index + 2;
+    size_t smallest = index;
     
     if (left < impl.realSize && *(impl.buffer[left]) < *(impl.buffer[index])) {
         smallest = left;
@@ -169,7 +169,7 @@ void CHeap<T>::printHeap() const {
 }
 
 template <class T>
-int CHeap<T>::getSize() const {
+size_t CHeap<T>::getSize() const {
     return impl.realSize;
 }
 
@@ -377,6 +377,7 @@ CNode *buildTree(unsigned long int *weight)
 {
     shared_ptr<CHeap<CNode>> heap(new CHeap<CNode>());
     CNode *node;
+    
     for (unsigned short i = 0; i < UCHAR_MAX + 1; i++) {
         if (weight[i] > 0) {
             node = new CNode(weight[i], static_cast<unsigned char>(i));
@@ -427,7 +428,7 @@ void encoder(const string ifile, const string ofile)
     ifstream infile(ifile.c_str(), ios::in|ios::binary);
     
     if (!infile.is_open()) {
-        cout << "Error can't open file: " << ifile << endl;
+        cerr << "Error can't open file: " << ifile << endl;
         exit(-1);
     }
     ofstream outfile(ofile.c_str(), ios::out|ios::binary|ios::trunc);
@@ -440,10 +441,10 @@ void encoder(const string ifile, const string ofile)
         outfile.put(static_cast<unsigned char>((weight[i] >> 8) % (UCHAR_MAX + 1)));
         outfile.put(static_cast<unsigned char>(weight[i] % (UCHAR_MAX + 1)));
     }
-    string bitStrings[0x100];
+    string bitStrings[UCHAR_MAX + 1];
     shared_ptr<CNode> node(buildTree(weight));
     
-    for (unsigned short i = 0; i < 0x100; i++) {
+    for (unsigned short i = 0; i < UCHAR_MAX + 1; i++) {
         if (weight[i] > 0) {
             bitStrings[i] = "";
             i = static_cast<unsigned char>(i);
@@ -478,7 +479,7 @@ void decoder(string ifile, string ofile)
     ifstream infile(ifile.c_str(), ios::in|ios::binary);
     
     if (!infile.is_open()) {
-        cout << "Error can't open file: " << ifile << endl;
+        cerr << "Error can't open file: " << ifile << endl;
         exit(-1);
     }
     ofstream outfile(ofile.c_str(), ios::out|ios::binary|ios::trunc);
@@ -486,7 +487,7 @@ void decoder(string ifile, string ofile)
     unsigned char ch = '\0';
     char tmp = '\0';
     
-    for (unsigned short i = 0; i < 0x100; i++) {
+    for (unsigned short i = 0; i < UCHAR_MAX + 1; i++) {
         for (int j = 3; j >= 0; j--) {
             infile.get(tmp);
             ch = tmp;
