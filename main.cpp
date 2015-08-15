@@ -73,10 +73,10 @@ public:
     void add(T *item);
     void deleteExtractElement();
     T *extractMin();
-    bool isEmpty() const;
-    bool isFull() const;
+    inline bool isEmpty() const;
+    inline bool isFull() const;
     void printHeap() const;
-    size_t getSize() const;
+    inline size_t getSize() const;
 private:
     CHeapImpl<T> impl;
     void grow();
@@ -183,48 +183,51 @@ bool CHeap<T>::isFull() const {
     return impl.realSize == impl.bufferSize;
 }
 
-class CNode {
+class CTree {
 public:
-    CNode(unsigned long int weight = 0, unsigned char ch = '\0');
-    ~CNode();
-    void destroyTree(CNode *node) const;
-    void setWeight(unsigned long int weight);
-    unsigned long int getWeight() const;
-    void setChar(unsigned char ch);
-    unsigned char getChar() const;
-    void setLeft(CNode *n);
-    CNode *getLeft() const;
-    void setRight(CNode *n);
-    CNode *getRight() const;
+    CTree(unsigned long int weight = 0, unsigned char ch = '\0');
+    ~CTree();
+    void destroyTree(CTree *node) const;
+    inline void setWeight(unsigned long int weight);
+    inline unsigned long int getWeight() const;
+    inline void setChar(unsigned char ch);
+    inline unsigned char getChar() const;
+    inline void setLeft(CTree *node);
+    inline CTree *getLeft() const;
+    inline void setRight(CTree *node);
+    inline CTree *getRight() const;
     void printNode() const;
-    bool findChar(CNode *node, string bitCode, unsigned char &ch) const;
-    void buildHuffmanCode(CNode *node, unsigned char ch, string bitCode, string &result) const;
-    void printTree(CNode *node) const;
-    bool operator < (const CNode &node) const;
-    bool operator <= (const CNode &node) const;
-    bool operator > (const CNode &node) const;
-    bool operator >= (const CNode &node) const;
-    friend ostream &operator << (ostream &os, const CNode &node);
+    bool findChar(CTree *node, const string bitCode, unsigned char &ch) const;
+    void buildHuffmanCode(CTree *node, unsigned char ch, string bitCode, string &result) const;
+    void printTree(CTree *node) const;
+    bool operator < (const CTree &node) const;
+    bool operator <= (const CTree &node) const;
+    bool operator > (const CTree &node) const;
+    bool operator >= (const CTree &node) const;
+    friend ostream &operator << (ostream &os, const CTree &node);
 private:
     unsigned long int weight;
     unsigned char ch;
-    CNode *left, *right;
+    CTree *left, *right;
 };
 
-CNode::CNode(unsigned long int weight, unsigned char ch):
+CTree::CTree(unsigned long int weight, unsigned char ch):
     weight(weight),
     ch(ch),
     left(nullptr),
     right(nullptr)
 {}
 
-CNode::~CNode()
+CTree::~CTree()
 {
-    destroyTree(left);
-    destroyTree(right);
+    if (left) {
+        destroyTree(left);
+    } else {
+        destroyTree(right);
+    }
 }
 
-void CNode::destroyTree(CNode *node) const
+void CTree::destroyTree(CTree *node) const
 {
     if (node) {
         destroyTree(node->left);
@@ -233,47 +236,47 @@ void CNode::destroyTree(CNode *node) const
     }
 }
 
-unsigned long int CNode::getWeight() const
+unsigned long int CTree::getWeight() const
 {
     return weight;
 }
 
-unsigned char CNode::getChar() const
+unsigned char CTree::getChar() const
 {
     return ch;
 }
 
-void CNode::setWeight(unsigned long int freq)
+void CTree::setWeight(unsigned long int freq)
 {
     weight = freq;
 }
 
-void CNode::setLeft(CNode *node)
+void CTree::setLeft(CTree *node)
 {
     left = node;
 }
 
-void CNode::setRight(CNode *node)
+void CTree::setRight(CTree *node)
 {
     right = node;
 }
 
-CNode *CNode::getLeft() const
+CTree *CTree::getLeft() const
 {
     return left;
 }
 
-CNode *CNode::getRight() const
+CTree *CTree::getRight() const
 {
     return right;
 }
 
-void CNode::printNode() const
+void CTree::printNode() const
 {
     cout << weight << " " << ch;
 }
 
-void CNode::printTree(CNode *node) const
+void CTree::printTree(CTree *node) const
 {
     if (node) {
         cout << node->weight << endl;
@@ -295,32 +298,32 @@ void countFrequence(ifstream &file, unsigned long int *weight)
     file.seekg(0);
 }
 
-ostream &operator << (ostream &os, const CNode &node)
+ostream &operator << (ostream &os, const CTree &node)
 {
     return os << node.weight << " " << node.ch;;
 }
 
-bool CNode::operator < (const CNode &node) const
+bool CTree::operator < (const CTree &node) const
 {
     return weight < node.weight;
 }
 
-bool CNode::operator <= (const CNode &node) const
+bool CTree::operator <= (const CTree &node) const
 {
     return weight <= node.weight;
 }
 
-bool CNode::operator > (const CNode &node) const
+bool CTree::operator > (const CTree &node) const
 {
     return weight > node.weight;
 }
 
-bool CNode::operator >= (const CNode &node) const
+bool CTree::operator >= (const CTree &node) const
 {
     return weight >= node.weight;
 }
 
-void CNode::buildHuffmanCode(CNode *node, unsigned char ch, string bitCode, string &result) const
+void CTree::buildHuffmanCode(CTree *node, unsigned char ch, string bitCode, string &result) const
 {
     if (node) {
         if (!node->left && !node->right && node->ch == ch) {
@@ -332,7 +335,7 @@ void CNode::buildHuffmanCode(CNode *node, unsigned char ch, string bitCode, stri
     }
 }
 
-bool CNode::findChar(CNode *node, string bitCode, unsigned char &ch) const
+bool CTree::findChar(CTree *node, const string bitCode, unsigned char &ch) const
 {
     for(size_t i = 0; i < bitCode.size(); i++) {
         if(bitCode[i] == '0') {
@@ -373,19 +376,19 @@ void writeBitCodeInFile(unsigned char bit, ostream &file)
     }
 }
 
-CNode *buildTree(unsigned long int *weight)
+CTree *buildTree(unsigned long int *weight)
 {
-    shared_ptr<CHeap<CNode>> heap(new CHeap<CNode>());
-    CNode *node;
+    shared_ptr<CHeap<CTree>> heap(new CHeap<CTree>());
+    CTree *node;
     
     for (unsigned short i = 0; i < UCHAR_MAX + 1; i++) {
         if (weight[i] > 0) {
-            node = new CNode(weight[i], static_cast<unsigned char>(i));
+            node = new CTree(weight[i], static_cast<unsigned char>(i));
             heap->add(node);
         }
     }
-    CNode *node1;
-    CNode *node2;
+    CTree *node1;
+    CTree *node2;
     
     do {
         node1 = heap->extractMin();
@@ -393,7 +396,7 @@ CNode *buildTree(unsigned long int *weight)
         if (!heap->isEmpty()) {
             node2 = heap->extractMin();
             heap->deleteExtractElement();
-            node = new CNode();
+            node = new CTree();
             node->setWeight(node1->getWeight() + node2->getWeight());
             node->setLeft(node1);
             node->setRight(node2);
@@ -442,13 +445,13 @@ void encoder(const string ifile, const string ofile)
         outfile.put(static_cast<unsigned char>(weight[i] % (UCHAR_MAX + 1)));
     }
     string bitStrings[UCHAR_MAX + 1];
-    shared_ptr<CNode> node(buildTree(weight));
+    shared_ptr<CTree> root(buildTree(weight));
     
     for (unsigned short i = 0; i < UCHAR_MAX + 1; i++) {
         if (weight[i] > 0) {
             bitStrings[i] = "";
             i = static_cast<unsigned char>(i);
-            node->buildHuffmanCode(node.get(), i, "", bitStrings[i]);
+            root->buildHuffmanCode(root.get(), i, "", bitStrings[i]);
         }
     }
     unsigned char ch = '\0';
@@ -474,7 +477,7 @@ void encoder(const string ifile, const string ofile)
     outfile.close();
 }
 
-void decoder(string ifile, string ofile)
+void decoder(const string ifile, const string ofile)
 {
     ifstream infile(ifile.c_str(), ios::in|ios::binary);
     
@@ -494,8 +497,8 @@ void decoder(string ifile, string ofile)
             weight[i] += ch * (1 << (CHAR_BIT * j));
         }
     }
-    shared_ptr<CNode> node(buildTree(weight));
-    unsigned long int totalWeight = node->getWeight();
+    shared_ptr<CTree> root(buildTree(weight));
+    unsigned long int totalWeight = root->getWeight();
     string bitStr = "";
     unsigned char bitChar = '\0';
     
@@ -508,7 +511,7 @@ void decoder(string ifile, string ofile)
             } else {
                 bitStr += '1';
             }
-        } while (!node->findChar(node.get(), bitStr, bitChar));
+        } while (!root->findChar(root.get(), bitStr, bitChar));
         outfile.put(static_cast<char>(bitChar));
         totalWeight--;
     }
